@@ -1,4 +1,4 @@
-import socket, struct, time, random
+import socket, struct, time, random, hashlib
 
 server_address = ('127.0.0.1', 9999)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -12,7 +12,11 @@ seq = 0
 msg_type = 0
 timestamp = int(time.time())
 packet = struct.pack('!BBBHHIf', 1, msg_type, sensor_type, device_id, seq, timestamp, 0.0)
-sock.sendto(packet, server_address)
+
+checksum = hashlib.md5(packet).digest() #calc checksum
+
+sock.sendto(packet+checksum, server_address)
+
 print("Temprature sensor initilializing...")
 
 data, _ = sock.recvfrom(200)
@@ -35,5 +39,9 @@ while True:
         print(f"[DATA] Temp={value:.2f}°C seq={seq}")
 
     packet = struct.pack('!BBBHHIf', 1, msg_type, sensor_type, device_id, seq, timestamp, value)
-    sock.sendto(packet, server_address)
+    
+    checksum = hashlib.md5(packet).digest() #calc checksum
+
+    sock.sendto(packet + checksum, server_address)
+
     time.sleep(1)

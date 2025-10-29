@@ -1,5 +1,5 @@
 import os
-import socket, struct, time, csv
+import socket, struct, time, csv,hashlib
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('0.0.0.0', 9999))
@@ -18,7 +18,7 @@ file_exists = os.path.isfile(filename)
 with open(filename, "a", newline='') as f:
     writer = csv.writer(f)
     if not file_exists or os.stat(filename).st_size == 0:
-        writer.writerow(["Sensor Type", "ID", "Seq", "timestamp", "time arrived", "msg type", "temperature", "humidity", "pressure", "packet loss","duplicated"])
+        writer.writerow(["Sensor Type", "ID", "Seq", "timestamp", "time arrived", "msg type", "temperature", "humidity", "pressure", "packet loss","duplicated", "valid"])
         print("Created file")
     else:
         print("File exists, appending")
@@ -26,16 +26,22 @@ with open(filename, "a", newline='') as f:
 
 
     while True:
-        data, addr = sock.recvfrom(200)
-        if len(data) != 15:
-            print(f"[WARN] Ignoring invalid packet ({len(data)} bytes) from {addr}")
+        packet, addr = sock.recvfrom(200)
+
+        if len(packet) != 31: #ignore noise
+            print(f"[WARN] Ignoring invalid packet ({len(packet)} bytes) from {addr}")
             continue
+
+        #split to actual data and checksum
+        data = packet[:-16]
+        checksum = packet[-16:]
+
         version, msg_type, sensor_type, device_id, seq, timestamp, value = struct.unpack('!BBBHHIf', data)
 
         temp, hum, pres = "", "", ""
         loss_detected = ""
 
-
+        #handshake
         if msg_type == 0:
             #check if the sensor was already assigned an id before
             if (addr, sensor_type) not in device_map:
@@ -99,9 +105,18 @@ with open(filename, "a", newline='') as f:
         print(sensor_type, device_id, seq, timestamp, time.time(),
             msg_type, temp, hum, pres, loss_detected)
         
+
+        #checksum
+        valid = False
+        if  hashlib.md5(data).digest()  == checksum:
+            valid = True
+        else:
+            print(f"Packet {seq} failed the checksum test")
+
+        
         writer.writerow([
             sensor_type, device_id, seq, timestamp, time.time(),
-            msg_type, temp, hum, pres, loss_detected,duplicate
+            msg_type, temp, hum, pres, loss_detected,duplicate,valid
         ])
 
         f.flush()

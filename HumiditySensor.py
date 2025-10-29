@@ -1,3 +1,4 @@
+import hashlib
 import socket, struct, time, random
 
 server_address = ('127.0.0.1', 9999)
@@ -12,7 +13,10 @@ seq = 0
 msg_type = 0
 timestamp = int(time.time())
 packet = struct.pack('!BBBHHIf', 1, msg_type, sensor_type, device_id, seq, timestamp, 0.0)
-sock.sendto(packet, server_address)
+
+checksum = hashlib.md5(packet).digest() #calc checksum
+sock.sendto(packet + checksum, server_address)
+
 print("Humidity sensor initializing...")
 
 # waiting for server response (new id and last seq)
@@ -36,5 +40,8 @@ while True:
         print(f"[DATA] Humidity={value:.2f}% seq={seq}")
 
     packet = struct.pack('!BBBHHIf', 1, msg_type, sensor_type, device_id, seq, timestamp, value)
-    sock.sendto(packet, server_address)
+
+    checksum = hashlib.md5(packet).digest() #calc checksum
+    sock.sendto(packet + checksum, server_address)
+    
     time.sleep(1)
