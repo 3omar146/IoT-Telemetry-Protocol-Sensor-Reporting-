@@ -7,7 +7,6 @@ print("Server started...")
 
 recentPacketLimit = 5
 recentPackets = {} #to store last n packets of each sensor to track duplicates
-last_seq = {}          
 last_heartbeat = {}
 type_counters = [0,0,0]   #counts number of sensors for each type(for id generation)
 device_map = {}      #maps each sensor to its id to allow same sensors to restart
@@ -36,41 +35,42 @@ with open(filename, "a", newline='') as f:
         data = packet[:-16]
         checksum = packet[-16:]
 
-        version, msg_type, sensor_type, device_id, seq, timestamp, value = struct.unpack('!BBBHHIf', data)
+        version, message_type, sensor_type, id, seq, timestamp, value = struct.unpack('!BBBHHIf', data)
 
         temp, hum, pres = "", "", ""
-        loss_detected = ""
+        loss_detected = 0
 
         #handshake
-        if msg_type == 0:
+        if message_type == 0:
             #check if the sensor was already assigned an id before
             if (addr, sensor_type) not in device_map:
                 #assigne a new id by incrementing
                 type_counters[sensor_type] = type_counters[sensor_type]+1
-                device_id = type_counters[sensor_type]
-                device_map[(addr, sensor_type)] = device_id
+                id = type_counters[sensor_type]
+                device_map[(addr, sensor_type)] = id
 
                 # Send ID assignment back to sensor
-                response = struct.pack('!BBBHHIf', 1, 10, sensor_type, device_id, 0, int(time.time()), 0.0)
+                response = struct.pack('!BBBHHIf', 1, 10, sensor_type, id, 0, int(time.time()), 0.0)
                 sock.sendto(response, addr)
 
-                key = (sensor_type,device_id)
+                key = (sensor_type,id)
                 if key not in recentPackets:
                     recentPackets[key] = [] #start a recent packets list
 
-                print(f"[HANDSHAKE] New sensor registered (Type={sensor_type}) → ID={device_id} for {addr}")
+                print(f"[HANDSHAKE] New sensor registered (Type={sensor_type}) → ID={id} for {addr}")
+                
             else:
                 id = device_map[(addr, sensor_type)]
-                seq = last_seq.get((sensor_type,id),0)+1
+                key = (sensor_type, id)
+                if recentPackets[key]:
+                    seq = max(recentPackets[key])+1
                 response = struct.pack('!BBBHHIf', 1, 10, sensor_type, id , seq , int(time.time()), 0.0)
                 sock.sendto(response, addr)
                 print(f"[INFO] Sensor (Type={sensor_type}) from {addr} already registered with ID={device_map[(addr, sensor_type)]}")
 
-        # Replace device_id with the assigned one
-        assigned_id = device_map.get((addr, sensor_type), device_id)
-        key = (sensor_type, assigned_id)
-        last_seq_val = last_seq.get(key,0)
-        last_seq[key] = seq
+        
+        key = (sensor_type, id)
+        
 
         #handle duplicates
         duplicate = False
@@ -78,40 +78,42 @@ with open(filename, "a", newline='') as f:
             duplicate = True
             print(f"Packet {seq} is duplicate")
         else:
-            if(len(recentPackets[key])>recentPacketLimit):
+            #check losses
+            if recentPackets[key]:
+                max_seq = max(recentPackets[key])
+                if seq > max_seq + 1:
+                    loss_detected = seq - max_seq - 1
+                    print(f"There are {loss_detected} losses from type={sensor_type}, id={id})")
+
+            #add the packet to recents
+            if(len(recentPackets[key])>recentPacketLimit): 
                 recentPackets[key].pop(0)
             recentPackets[key].append(seq)
-            print(recentPackets[key])
 
 
-        if msg_type == 1:
-            if last_seq_val is not None and seq != last_seq_val + 1:
-                loss_detected = f"Missing {seq - last_seq_val - 1} packet(s)"
-                print(f"[LOSS] {loss_detected} from (Type={sensor_type}, ID={device_id})")
-
-
-            if sensor_type == 1:
+        if message_type == 1: 
+            if sensor_type == 0:
                 temp = value
-            elif sensor_type == 2:
+            elif sensor_type == 1:
                 hum = value
-            elif sensor_type == 3:
+            elif sensor_type == 2:
                 pres = value
 
-            print(f"[DATA] Type={sensor_type} ID={device_id} seq={seq} value={value:.2f}")
+            print(f"[DATA] Type={sensor_type} ID={id} seq={seq} value={value:.2f}")
 
-        elif msg_type == 2:
+        elif message_type == 2:
             last_heartbeat[key] = time.time()
-            print(f"[HEARTBEAT] Device {device_id} is alive")
-        print(sensor_type, device_id, seq, timestamp, time.time(),
-            msg_type, temp, hum, pres, loss_detected)
+            print(f"[HEARTBEAT] Device {id} is alive")
+        print(sensor_type, id, seq, timestamp, time.time(),
+            message_type, temp, hum, pres, loss_detected)
         
 
         #checksum
         if  hashlib.md5(data).digest()  == checksum: #write  only valid data
-
+            print("data valid")
             writer.writerow([
-                sensor_type, device_id, seq, timestamp, time.time(),
-                msg_type, temp, hum, pres, loss_detected,duplicate
+                sensor_type, id, seq, round(timestamp,3), round(time.time(),3),
+                message_type, temp, hum,pres, loss_detected,duplicate
             ])
 
             f.flush()
@@ -122,6 +124,6 @@ with open(filename, "a", newline='') as f:
 
         for (type, id), last_time in list(last_heartbeat.items()):
             if time.time() - last_time > 10:
-                print(f"!!!Warning!!! {sensor_type} Sensor with id ={device_id}) stopped sending heartbeats!")
-                del last_heartbeat[(sensor_type, device_id)]
+                print(f"!!!Warning!!! {sensor_type} Sensor with id ={id}) stopped sending heartbeats!")
+                del last_heartbeat[(sensor_type, id)]
 
