@@ -18,7 +18,7 @@ file_exists = os.path.isfile(filename)
 with open(filename, "a", newline='') as f:
     writer = csv.writer(f)
     if not file_exists or os.stat(filename).st_size == 0:
-        writer.writerow(["Sensor Type", "ID", "Seq", "timestamp", "time arrived", "msg type", "temperature", "humidity", "pressure", "packet loss","duplicated", "valid"])
+        writer.writerow(["Sensor Type", "ID", "Seq", "timestamp", "time arrived", "msg type", "temperature", "humidity", "pressure", "packet loss","duplicated"])
         print("Created file")
     else:
         print("File exists, appending")
@@ -107,19 +107,18 @@ with open(filename, "a", newline='') as f:
         
 
         #checksum
-        valid = False
-        if  hashlib.md5(data).digest()  == checksum:
-            valid = True
+        if  hashlib.md5(data).digest()  == checksum: #write  only valid data
+
+            writer.writerow([
+                sensor_type, device_id, seq, timestamp, time.time(),
+                msg_type, temp, hum, pres, loss_detected,duplicate
+            ])
+
+            f.flush()
+
         else:
             print(f"Packet {seq} failed the checksum test")
 
-        
-        writer.writerow([
-            sensor_type, device_id, seq, timestamp, time.time(),
-            msg_type, temp, hum, pres, loss_detected,duplicate,valid
-        ])
-
-        f.flush()
 
         for (type, id), last_time in list(last_heartbeat.items()):
             if time.time() - last_time > 10:
