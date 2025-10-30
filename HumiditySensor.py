@@ -12,7 +12,7 @@ HEADER_FORMAT = '!BBBBHHI'  # version,msg_type,count,sensor,device,seq,timestamp
 VALUE_FORMAT  = '!f'
 MAX_BATCH     = 3
 # msg type 0=>init, 1=>data, 2=>heartbeat
-
+#a
 def send_handshake():
     global device_id, seq
     packet = struct.pack(HEADER_FORMAT, 1, 0, 0, sensor_type, device_id, seq, int(time.time()))
