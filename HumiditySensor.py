@@ -8,7 +8,7 @@ sock.settimeout(3)
 device_id = 1
 sensor_type = 1  
 seq = 0
-
+##newcomnet
 # Handshake
 msg_type = 0
 timestamp = int(time.time())
