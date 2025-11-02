@@ -1,9 +1,13 @@
 import os
 import socket, struct, time, csv, hashlib
+from rich.console import Console
+from rich.table import Table
+from rich import box
 
+console = Console()
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('0.0.0.0', 9999))
-print("Server started...")
+console.print("[bold green]Server started...[/bold green]")
 
 recentPacketLimit = 5
 recentPackets = {}
@@ -23,9 +27,9 @@ with open(filename, "a", newline='') as f:
     if not file_exists or os.stat(filename).st_size == 0:
         writer.writerow(["Sensor Type","ID","Seq","Timestamp","Arrival","Msg Type",
                          "Temperature","Humidity","Pressure","Packet Loss","Duplicate","ReadingCount"])
-        print("Created file")
+        console.print("[yellow]Created new CSV file.[/yellow]")
     else:
-        print("File exists, appending")
+        console.print("[cyan]File exists, appending to it.[/cyan]")
 
 # ---------- MAIN LOOP ----------
 while True:
@@ -44,7 +48,7 @@ while True:
     duplicate = False
 
     key = (sensor_type, dev_id)
-    label = msg_label(msg_type)  # text for CSV only
+    label = msg_label(msg_type)
 
     # ---------- HANDSHAKE ----------
     if msg_type == 0:
@@ -57,32 +61,32 @@ while True:
             sock.sendto(response, addr)
 
             recentPackets[key] = []
-            print(f"[HANDSHAKE] New device Type={sensor_type} → ID={dev_id}")
+            console.print(f"[bold blue][HANDSHAKE][/bold blue] New device Type={sensor_type} → ID={dev_id}")
 
         else:
             dev_id = device_map[(addr, sensor_type)]
             seq = max(recentPackets.get(key, [0])) + 1
             response = struct.pack('!BBBBHHI', 1, 10, 0, sensor_type, dev_id, seq, int(time.time()))
             sock.sendto(response, addr)
-            print(f"[INFO] Device already registered (Type={sensor_type}, ID={dev_id})")
+            console.print(f"[dim cyan][INFO][/dim cyan] Device already registered (Type={sensor_type}, ID={dev_id})")
 
     # ---------- DUPLICATE & LOSS CHECK ----------
     if seq in recentPackets.get(key, []):
         duplicate = True
-        print(f"[DUPLICATE] Type={sensor_type} ID={dev_id} seq={seq}")
+        console.print(f"[red][DUPLICATE][/red] Type={sensor_type} ID={dev_id} seq={seq}")
     else:
         if key in recentPackets and recentPackets[key]:
             max_seq = max(recentPackets[key])
             if seq > max_seq + 1:
                 loss_detected = seq - max_seq - 1
-                print(f"[LOSS] Missing {loss_detected} packets (Type={sensor_type}, ID={dev_id})")
+                console.print(f"[yellow][LOSS][/yellow] Missing {loss_detected} packets (Type={sensor_type}, ID={dev_id})")
 
         recentPackets.setdefault(key, []).append(seq)
         if len(recentPackets[key]) > recentPacketLimit:
             recentPackets[key].pop(0)
 
     # ---------- DATA ----------
-    batch_values_str = None  # will hold comma-separated string for batch if count > 1
+    batch_values_str = None
     if msg_type == 1:
         values = []
         for _ in range(count):
@@ -95,42 +99,42 @@ while True:
             if sensor_type == 0: temp = v
             if sensor_type == 1: hum = v
             if sensor_type == 2: pres = v
-            print(f"[DATA] Single → Type={sensor_type} ID={dev_id} seq={seq} = {v:.2f}")
+            console.print(f"[green][DATA][/green] Single → Type={sensor_type} ID={dev_id} seq={seq} = {v:.2f}")
         else:
-            print(f"[DATA BATCH] seq={seq}, count={count}, values={[round(v,2) for v in values]}")
             batch_values_str = ",".join([f"{v:.2f}" for v in values])
-            # do not write here; write after checksum validation below
+            # pretty-print the batch in a mini table
+            table = Table(title=f"[bold cyan]BATCH DATA seq={seq}[/bold cyan]", box=box.MINIMAL_DOUBLE_HEAD)
+            table.add_column("Index", justify="center")
+            table.add_column("Value", justify="center")
+            for i, v in enumerate(values, 1):
+                table.add_row(str(i), f"{v:.2f}")
+            console.print(table)
 
     # ---------- HEARTBEAT ----------
     if msg_type == 2:
         last_heartbeat[key] = time.time()
-        print(f"[HEARTBEAT] Device {dev_id} alive")
+        console.print(f"[magenta][HEARTBEAT][/magenta] Device {dev_id} alive")
 
-    # ---------- CHECKSUM + CSV LOG (single or INIT/Heartbeat or batch) ----------
+    # ---------- CHECKSUM + CSV LOG ----------
     if hashlib.md5(data).digest() == checksum:
         with open(filename, "a", newline='') as f:
             writer = csv.writer(f)
-            # If this is a batch (batch_values_str not None), write the batch_values_str in the Temperature column (consistent with prior behavior)
             if batch_values_str is not None:
-                writer.writerow([
-                    sensor_type, dev_id, seq, round(timestamp,3),
-                    round(time.time(),3), label,
-                    batch_values_str, "", "", loss_detected, duplicate, count
-                ])
+                writer.writerow([sensor_type, dev_id, seq, round(timestamp,3),
+                                 round(time.time(),3), label,
+                                 batch_values_str, "", "", loss_detected, duplicate, count])
             else:
-                writer.writerow([
-                    sensor_type, dev_id, seq, round(timestamp,3),
-                    round(time.time(),3), label,
-                    f"{temp:.2f}" if temp != "" else "",
-                    f"{hum:.2f}" if hum != "" else "",
-                    f"{pres:.2f}" if pres != "" else "",
-                    loss_detected, duplicate, count
-                ])
+                writer.writerow([sensor_type, dev_id, seq, round(timestamp,3),
+                                 round(time.time(),3), label,
+                                 f"{temp:.2f}" if temp != "" else "",
+                                 f"{hum:.2f}" if hum != "" else "",
+                                 f"{pres:.2f}" if pres != "" else "",
+                                 loss_detected, duplicate, count])
     else:
-        print(f"[CHECKSUM ERROR] seq={seq}")
+        console.print(f"[red][CHECKSUM ERROR][/red] seq={seq}")
 
     # ---------- HEARTBEAT TIMEOUT ----------
     for (stype, did), last in list(last_heartbeat.items()):
         if time.time() - last > 10:
-            print(f"[WARNING] Device Type={stype} ID={did} missed heartbeat!")
+            console.print(f"[bold yellow][WARNING][/bold yellow] Device Type={stype} ID={did} missed heartbeat!")
             del last_heartbeat[(stype, did)]
