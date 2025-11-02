@@ -82,6 +82,7 @@ while True:
             recentPackets[key].pop(0)
 
     # ---------- DATA ----------
+    batch_values_str = None  # will hold comma-separated string for batch if count > 1
     if msg_type == 1:
         values = []
         for _ in range(count):
@@ -97,34 +98,34 @@ while True:
             print(f"[DATA] Single → Type={sensor_type} ID={dev_id} seq={seq} = {v:.2f}")
         else:
             print(f"[DATA BATCH] seq={seq}, count={count}, values={[round(v,2) for v in values]}")
-            values_str = ",".join([f"{v:.2f}" for v in values])
-
-            with open(filename, "a", newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow([
-                    sensor_type, dev_id, seq, round(timestamp,3),
-                    round(time.time(),3), label,
-                    values_str, "", "", loss_detected, duplicate, count
-                ])
-            continue  # batch already logged
+            batch_values_str = ",".join([f"{v:.2f}" for v in values])
+            # do not write here; write after checksum validation below
 
     # ---------- HEARTBEAT ----------
     if msg_type == 2:
         last_heartbeat[key] = time.time()
         print(f"[HEARTBEAT] Device {dev_id} alive")
 
-    # ---------- CHECKSUM + CSV LOG (single or INIT/Heartbeat) ----------
+    # ---------- CHECKSUM + CSV LOG (single or INIT/Heartbeat or batch) ----------
     if hashlib.md5(data).digest() == checksum:
         with open(filename, "a", newline='') as f:
             writer = csv.writer(f)
-            writer.writerow([
-                sensor_type, dev_id, seq, round(timestamp,3),
-                round(time.time(),3), label,
-                f"{temp:.2f}" if temp != "" else "",
-                f"{hum:.2f}" if hum != "" else "",
-                f"{pres:.2f}" if pres != "" else "",
-                loss_detected, duplicate, count
-            ])
+            # If this is a batch (batch_values_str not None), write the batch_values_str in the Temperature column (consistent with prior behavior)
+            if batch_values_str is not None:
+                writer.writerow([
+                    sensor_type, dev_id, seq, round(timestamp,3),
+                    round(time.time(),3), label,
+                    batch_values_str, "", "", loss_detected, duplicate, count
+                ])
+            else:
+                writer.writerow([
+                    sensor_type, dev_id, seq, round(timestamp,3),
+                    round(time.time(),3), label,
+                    f"{temp:.2f}" if temp != "" else "",
+                    f"{hum:.2f}" if hum != "" else "",
+                    f"{pres:.2f}" if pres != "" else "",
+                    loss_detected, duplicate, count
+                ])
     else:
         print(f"[CHECKSUM ERROR] seq={seq}")
 
