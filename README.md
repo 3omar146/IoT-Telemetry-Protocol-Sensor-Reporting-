@@ -1,6 +1,6 @@
 # IoT Telemetry Protocol – UDP Client & Server
 
-## 📄 Overview
+##  Overview
 This project implements a simple **IoT Telemetry Protocol** where a **sensor client** sends telemetry packets to a **server** using UDP.  
 It demonstrates two main message types:
 - **INIT** – used by the client to register and initialize communication.
