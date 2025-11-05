@@ -4,6 +4,7 @@ server_address = ('127.0.0.1', 9999)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.settimeout(3)
 
+reporting_intervals = 1
 device_id = 0
 sensor_type = 1  # 1 = Humidity
 seq = 0
@@ -67,7 +68,7 @@ while True:
     # Heartbeat every 5th
     if next_seq % 5 == 0:
         send_heartbeat()
-        time.sleep(1)
+        time.sleep(reporting_intervals)
         continue
 
     # Batch every 7th
@@ -77,12 +78,12 @@ while True:
             val = random.uniform(40.0, 60.0)  # humidity range
             vals.append(val)
             print(f"[BATCH COLLECTION] {val:.2f}%")
-            time.sleep(2)
+            time.sleep(reporting_intervals)
         send_batch(vals)
-        time.sleep(1)
+        time.sleep(reporting_intervals)
         continue
 
     # Single reading
     value = random.uniform(40.0, 60.0)
     send_single(value)
-    time.sleep(1)
+    time.sleep(reporting_intervals)

@@ -1,3 +1,5 @@
+import json
+import socket
 import tkinter as tk
 from tkinter import ttk, messagebox
 import subprocess
@@ -11,7 +13,31 @@ import os
 # ===================== GLOBALS =====================
 processes = {}
 LOG_FILE = "SensorsLogs.csv"
-TIMER = 60
+TIMER = 10
+packet_loss = 0
+
+#----------metrics connection------
+METRICS_PORT = 9998
+
+def listen_for_metrics():
+    """Listen for metric updates sent from the server."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("0.0.0.0", METRICS_PORT))
+    while True:
+        data, _ = sock.recvfrom(1024)
+        try:
+            metrics = json.loads(data.decode())
+            update_metrics_display(metrics)
+        except Exception as e:
+            print(f"Error parsing metrics: {e}")
+
+def update_metrics_display(metrics):
+    """Update the metrics section in the GUI."""
+    global packet_loss 
+    packet_loss = metrics.get("packet_loss", 0)
+    for key, value in metrics.items():
+        if key in metric_labels:
+            metric_labels[key].config(text=f"{value}")
 
 # ===================== SERVER STARTUP =====================
 def start_server():
@@ -50,7 +76,7 @@ def stop_all():
     """Stop all sensors."""
     for name in list(processes.keys()):
         stop_sensor(name)
-    messagebox.showinfo("Info", "All sensors stopped.")
+    print("All sensors stopped.")
 
 # ===================== CSV READER =====================
 def load_data():
@@ -82,14 +108,16 @@ def update_table():
         ))
     root.after(2000, update_table)  # refresh every 5 seconds
 
-# ===================== MATPLOTLIB GRAPH =====================
+#------------GRAPH-------------
 def update_graph():
     """Update the matplotlib graph inside Tkinter."""
     df = load_data()
-    ax.clear()
+    ax.cla()  # Clear the plot safely
+
     ax.set_title("Recent Sensor Readings")
     ax.set_xlabel("Time (last 10 readings)")
     ax.set_ylabel("Values")
+    ax.grid(True)
 
     if not df.empty:
         if "Temperature" in df.columns:
@@ -101,17 +129,23 @@ def update_graph():
         if "Pressure" in df.columns:
             pres_vals = pd.to_numeric(df["Pressure"], errors="coerce")
             ax.plot(pres_vals, label="Pressure (hPa)", color="green")
-
         ax.legend()
+    else:
+        # Show a placeholder message if there’s no data
+        ax.text(0.5, 0.5, "No data yet", ha="center", va="center", fontsize=12, color="gray")
 
-    canvas.draw()
+    plt.tight_layout()
+    canvas.draw_idle()  # Redraw efficiently without blocking the main loop
     root.after(2500, update_graph)
+
+
 
 # ===================== GUI SETUP =====================
 root = tk.Tk()
 root.title("IoT Sensor Control Dashboard")
-root.geometry("1000x700")
+root.geometry("1400x1200")
 root.configure(bg="#f2f2f2")
+
 
 # --- Title ---
 tk.Label(root, text="IoT Sensor Control Dashboard", font=("Arial", 20, "bold"), bg="#f2f2f2").pack(pady=10)
@@ -138,6 +172,22 @@ for i, (name, file) in enumerate(sensors.items()):
 
 tk.Button(control_frame, text="Stop All", command=stop_all, bg="gray", fg="white").grid(row=len(sensors), column=1, pady=10)
 
+#-----metrics------
+metrics_frame = tk.LabelFrame(root, text="Server Metrics", font=("Arial", 12, "bold"), padx=10, pady=10)
+metrics_frame.pack(pady=10)
+
+#metrics part
+metrics = ["bytes_per_report", "packets_received", "duplicate_rate", "sequence_gap_count", "cpu_ms_per_report","packet_loss"]
+metric_labels = {}
+
+for i, key in enumerate(metrics):
+    tk.Label(metrics_frame, text=f"{key}:", font=("Arial", 11)).grid(row=i, column=0, sticky="w")
+    lbl = tk.Label(metrics_frame, text="N/A", font=("Arial", 11, "bold"), fg="blue")
+    lbl.grid(row=i, column=1, sticky="w", padx=10)
+    metric_labels[key] = lbl
+
+
+
 # --- Data Table ---
 table_frame = tk.Frame(root)
 table_frame.pack(pady=15)
@@ -151,11 +201,14 @@ tree.pack()
 
 # --- Graph Frame ---
 graph_frame = tk.Frame(root)
-graph_frame.pack(pady=15)
+graph_frame.pack(fill="both", expand=True, pady=15)  # ✅ allow it to expand
 
-fig, ax = plt.subplots(figsize=(7, 3))
+fig, ax = plt.subplots(figsize=(8, 4))
 canvas = FigureCanvasTkAgg(fig, master=graph_frame)
-canvas.get_tk_widget().pack()
+canvas_widget = canvas.get_tk_widget()
+canvas_widget.pack(fill="both", expand=True)  # ✅ fill available space
+canvas.draw()
+
 
 # ===================== BACKGROUND THREADS =====================
 update_table()
@@ -164,10 +217,20 @@ update_graph()
 # ===================== START SERVER ON LAUNCH =====================
 server_process = start_server()
 
+#================TEST===========
+def test():
+    if(packet_loss <= 0.01):
+        messagebox.showinfo("Successful",f"Test succeeded with a packet loss of {packet_loss:.0f} < 0.01")
+    else:
+        messagebox.showinfo("Failed",f"Test failed with a packet loss of {packet_loss:.0f} > 0.01")
+
+
+
 # ===================== TIMER =====================
 def stop_all_after_timeout():
     time.sleep(TIMER)
-    messagebox.showinfo("Timer","The {TIMER} seconds test timer is out")
+    messagebox.showinfo("Timer",f"The {TIMER:.0f} seconds test timer is out")
+    test()
     stop_all()
     if server_process:
         server_process.terminate()
@@ -175,6 +238,7 @@ def stop_all_after_timeout():
     root.quit()
 
 threading.Thread(target=stop_all_after_timeout, daemon=True).start()
+threading.Thread(target=listen_for_metrics, daemon=True).start()
 
 # ===================== MAIN LOOP =====================
 root.mainloop()

@@ -1,3 +1,4 @@
+import json
 import os
 import socket, struct, time, csv, hashlib
 from rich.console import Console
@@ -9,13 +10,38 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('0.0.0.0', 9999))
 console.print("[bold green]Server started...[/bold green]")
 
+######GLOBALS#########
+payload_limit_bytes = 200
 recentPacketLimit = 5
 recentPackets = {}
 last_heartbeat = {}
 counter = 0
 device_map = {}
+#constrains and metrics
+loss_tolerance = 0.05
+losses = 0
+packets_sent = 0
+packets_received = 0
+total_report_size = 0
+total_duplicates = 0
+sequence_gap_count = 0
+cpu_ms_per_report = 0
+total_cpu_time = 0
 
 filename = "SensorsLogs.csv"
+
+dashboard_addr = ('127.0.0.1', 9998)  # Dashboard IP and port
+
+def send_metrics(bytes_per_report,packets_received,duplicate_rate,sequence_gap_count,cpu_ms_per_report,loss_percent):
+    metrics_data = {
+        "bytes_per_report": round(bytes_per_report, 2),
+        "packets_received": packets_received,
+        "duplicate_rate": round(duplicate_rate, 3),
+        "sequence_gap_count": sequence_gap_count,
+        "cpu_ms_per_report": round(cpu_ms_per_report, 3),
+        "packet_loss":  round(loss_percent, 3)
+    }
+    sock.sendto(json.dumps(metrics_data).encode(),dashboard_addr)
 
 def msg_label(t):
     return {0:"INIT",1:"DATA",2:"HEARTBEAT"}.get(t,str(t))
@@ -36,16 +62,21 @@ header_size = struct.calcsize('!BBBBHHI')
 while True:
     packet, addr = sock.recvfrom(200)
 
+    total_cpu_time = 0
+    start = time.perf_counter() #for cpu time
+
     data = packet[:-16]
     checksum = packet[-16:]
 
     version, msg_type, count, sensor_type, dev_id, seq, timestamp = struct.unpack('!BBBBHHI', data[:struct.calcsize('!BBBBHHI')])
 
-    #------NOISE-------
+    #------NOISE AND MAXIMUM PAYLOAD-------
     expected_size = count*4 + header_size
-    if(expected_size != len(data)): #detect noise data
-        print(f"[red][NOISE]Noise detected")
+    if(expected_size != len(data) or len(packet)>200): #detect noise data and maximum payload
+        print(f"[red][NOISE]Noise detected or data may have exceeded the maximum payload")
+        continue
     else:
+        total_report_size += len(packet)
 
         index = header_size
 
@@ -78,17 +109,24 @@ while True:
         # ---------- DUPLICATE & LOSS CHECK --------
         if seq in recentPackets.get(dev_id, []):
             duplicate = True
+            total_duplicates +=1
             console.print(f"[red][DUPLICATE][/red] Type={sensor_type} ID={dev_id} seq={seq}")
         else:
             if dev_id in recentPackets and recentPackets[dev_id]:
                 max_seq = max(recentPackets[dev_id])
                 if seq > max_seq + 1:
                     loss_detected = seq - max_seq - 1
+                    losses += loss_detected
+                    sequence_gap_count+=1
+                    packets_sent+=loss_detected #coungt lost packets as sent packets
                     console.print(f"[yellow][LOSS][/yellow] Missing {loss_detected} packets (Type={sensor_type}, ID={dev_id})")
 
             recentPackets.setdefault(dev_id, []).append(seq)
             if len(recentPackets[dev_id]) > recentPacketLimit:
                 recentPackets[dev_id].pop(0)
+
+        packets_sent +=1
+        packets_received +=1
 
         # -------- DATA ----------
         batch_values_str = None
@@ -145,8 +183,20 @@ while True:
         else:
             console.print(f"[red][CHECKSUM ERROR][/red] seq={seq}")
 
-    #--------- HEARTBEAT TIMEOUT ----------
-    for id, last in list(last_heartbeat.items()):
-        if time.time() - last > 20:
-            console.print(f"[bold yellow][WARNING][/bold yellow] ID={id} missed heartbeat!")
-            del last_heartbeat[id]
+        loss_percent = losses/packets_sent
+        if(loss_percent > loss_tolerance): #check packet loss percentage
+            print(f"[red][Packet loss limit exceeded] packet loss = {losses/packets_sent}")
+
+        bytes_per_report = total_report_size/packets_received
+        duplicate_rate = total_duplicates/packets_received
+        send_metrics(bytes_per_report,packets_received,duplicate_rate,sequence_gap_count,cpu_ms_per_report,loss_percent)
+
+        #--------- HEARTBEAT TIMEOUT ----------
+        for id, last in list(last_heartbeat.items()):
+            if time.time() - last > 20:
+                console.print(f"[bold yellow][WARNING][/bold yellow] ID={id} missed heartbeat!")
+                del last_heartbeat[id]
+
+        end = time.perf_counter()    #stop timing
+        total_cpu_time += (end - start) * 1000
+        cpu_ms_per_report = total_cpu_time / packets_received if packets_received else 0

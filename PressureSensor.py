@@ -4,6 +4,7 @@ server_address = ('127.0.0.1', 9999)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.settimeout(3)
 
+reporting_intervals = 1
 device_id = 0
 sensor_type = 2  # 2 = Pressure Sensor
 seq = 0
@@ -68,7 +69,7 @@ while True:
     # Heartbeat every 5 messages
     if next_seq % 5 == 0:
         send_heartbeat()
-        time.sleep(1)
+        time.sleep(reporting_intervals)
         continue
 
     # Batch readings every 7 messages
@@ -78,12 +79,12 @@ while True:
             val = random.uniform(950.0, 1050.0)  # Typical pressure range in hPa
             vals.append(val)
             print(f"[BATCH COLLECTION] {val:.2f} hPa")
-            time.sleep(2)
+            time.sleep(reporting_intervals)
         send_batch(vals)
-        time.sleep(1)
+        time.sleep(reporting_intervals)
         continue
 
     # Single reading
     value = random.uniform(950.0, 1050.0)
     send_single(value)
-    time.sleep(1)
+    time.sleep(reporting_intervals)

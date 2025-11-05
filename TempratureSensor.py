@@ -4,6 +4,7 @@ server_address = ('127.0.0.1', 9999)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.settimeout(3)
 
+reporting_intervals = 1
 device_id = 0
 sensor_type = 0
 seq = 0
@@ -74,7 +75,7 @@ while True:
     # HEARTBEAT every 5th send -> heartbeat stands alone
     if next_seq % 5 == 0:
         send_heartbeat()
-        time.sleep(1)
+        time.sleep(reporting_intervals)
         continue
     # BATCH every 10th send → generate 3 readings with 3-second delay each
     if next_seq % 7 == 0:
@@ -83,14 +84,14 @@ while True:
             val = random.uniform(20.0, 30.0)
             vals.append(val)
             print(f"[BATCH COLLECTION] {val:.2f}°C")
-            time.sleep(2)  # wait 3 seconds between readings
+            time.sleep(reporting_intervals)  # wait 3 seconds between readings
         
         send_batch(vals)
-        time.sleep(1)
+        time.sleep(reporting_intervals)
         continue
 
 
     # Otherwise send a single reading
     value = random.uniform(20.0, 30.0)
     send_single(value)
-    time.sleep(1)
+    time.sleep(reporting_intervals)
