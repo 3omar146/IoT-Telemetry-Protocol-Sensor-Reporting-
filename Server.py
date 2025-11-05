@@ -44,7 +44,7 @@ while True:
     #------NOISE-------
     expected_size = count*4 + header_size
     if(expected_size != len(data)): #detect noise data
-        print("[red][NOISE}Noise detected")
+        print(f"[red][NOISE]Noise detected")
     else:
 
         index = header_size
