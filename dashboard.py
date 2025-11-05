@@ -11,6 +11,18 @@ import os
 # ===================== GLOBALS =====================
 processes = {}
 LOG_FILE = "SensorsLogs.csv"
+TIMER = 60
+
+# ===================== SERVER STARTUP =====================
+def start_server():
+    """Start the UDP sensor server automatically when the dashboard runs."""
+    try:
+        server_process = subprocess.Popen(["python", "Server.py"])
+        print("Server started successfully.")
+        return server_process
+    except FileNotFoundError:
+        messagebox.showerror("Error", "Server.py not found.")
+        return None
 
 # ===================== SENSOR CONTROL =====================
 def start_sensor(name, file):
@@ -68,7 +80,7 @@ def update_table():
             r.get("Msg Type", ""),
             r.get("ReadingCount", "")
         ))
-    root.after(5000, update_table)  # refresh every 5 seconds
+    root.after(2000, update_table)  # refresh every 5 seconds
 
 # ===================== MATPLOTLIB GRAPH =====================
 def update_graph():
@@ -93,7 +105,7 @@ def update_graph():
         ax.legend()
 
     canvas.draw()
-    root.after(7000, update_graph)
+    root.after(2500, update_graph)
 
 # ===================== GUI SETUP =====================
 root = tk.Tk()
@@ -149,5 +161,25 @@ canvas.get_tk_widget().pack()
 update_table()
 update_graph()
 
+# ===================== START SERVER ON LAUNCH =====================
+server_process = start_server()
+
+# ===================== TIMER =====================
+def stop_all_after_timeout():
+    time.sleep(TIMER)
+    messagebox.showinfo("Timer","The {TIMER} seconds test timer is out")
+    stop_all()
+    if server_process:
+        server_process.terminate()
+    
+    root.quit()
+
+threading.Thread(target=stop_all_after_timeout, daemon=True).start()
+
 # ===================== MAIN LOOP =====================
 root.mainloop()
+
+# ===================== CLEANUP ON CLOSE =====================
+if server_process:
+    server_process.terminate()
+    print("Server stopped.")
