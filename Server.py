@@ -28,7 +28,9 @@ sequence_gap_count = 0
 cpu_ms_per_report = 0
 total_cpu_time = 0
 
-filename = "SensorsLogs.csv"
+readings_file = "SensorsLogs.csv"
+metrics_file = "Metrics.csv"
+
 
 dashboard_addr = ('127.0.0.1', 9998)  # Dashboard IP and port
 
@@ -43,19 +45,41 @@ def send_metrics(bytes_per_report,packets_received,duplicate_rate,sequence_gap_c
     }
     sock.sendto(json.dumps(metrics_data).encode(),dashboard_addr)
 
+    #store in csv
+    with open(metrics_file, "w", newline='') as f:  # 'w' mode clears previous content
+        writer = csv.writer(f)
+        # Write header
+        writer.writerow(["bytes_per_report",
+                         "packets_received",
+                         "duplicate_rate",
+                         "sequence_gap_count",
+                         "cpu_ms_per_report",
+                         "packet_loss"])
+        # Write the latest metrics
+        writer.writerow([
+            metrics_data["bytes_per_report"],
+            metrics_data["packets_received"],
+            metrics_data["duplicate_rate"],
+            metrics_data["sequence_gap_count"],
+            metrics_data["cpu_ms_per_report"],
+            metrics_data["packet_loss"]
+        ])
+
 def msg_label(t):
     return {0:"INIT",1:"DATA",2:"HEARTBEAT"}.get(t,str(t))
 
 # ---------- FILE INITIALIZE ----------
-file_exists = os.path.isfile(filename)
-with open(filename, "a", newline='') as f:
+file_exists = os.path.isfile(readings_file)
+with open(readings_file, "a", newline='') as f:
     writer = csv.writer(f)
-    if not file_exists or os.stat(filename).st_size == 0:
+    if not file_exists or os.stat(readings_file).st_size == 0:
         writer.writerow(["Sensor Type","ID","Seq","Timestamp","Arrival","Msg Type",
                          "Temperature","Humidity","Pressure","Packet Loss","Duplicate","ReadingCount"])
         console.print("[yellow]Created new CSV file.[/yellow]")
     else:
         console.print("[cyan]File exists, appending to it.[/cyan]")
+
+file_exists = os.path.isfile(metrics_file)
 
 header_size = struct.calcsize('!BBBBHHI')
 # -------- MAIN LOOP ---------
@@ -160,7 +184,7 @@ while True:
 
         # ---------- CHECKSUM + CSV LOG ----------
         if hashlib.md5(data).digest() == checksum:
-            with open(filename, "a", newline='') as f:
+            with open(readings_file, "a", newline='') as f:
                 writer = csv.writer(f)
                 if batch_values_str is not None:
                     if sensor_type == 0:
