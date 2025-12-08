@@ -20,7 +20,6 @@ device_map = {}
 #constrains and metrics
 loss_tolerance = 0.05
 losses = 0
-packets_sent = 0
 packets_received = 0
 total_report_size = 0
 total_duplicates = 0
@@ -142,14 +141,13 @@ while True:
                     loss_detected = seq - max_seq - 1
                     losses += loss_detected
                     sequence_gap_count+=1
-                    packets_sent+=loss_detected #coungt lost packets as sent packets
+
                     console.print(f"[yellow][LOSS][/yellow] Missing {loss_detected} packets (Type={sensor_type}, ID={dev_id})")
 
             recentPackets.setdefault(dev_id, []).append(seq)
             if len(recentPackets[dev_id]) > recentPacketLimit:
                 recentPackets[dev_id].pop(0)
 
-        packets_sent +=1
         packets_received +=1
 
         # -------- DATA ----------
@@ -207,9 +205,9 @@ while True:
         else:
             console.print(f"[red][CHECKSUM ERROR][/red] seq={seq}")
 
-        loss_percent = losses/packets_sent
+        loss_percent = (losses / (losses + packets_received))*100
         if(loss_percent > loss_tolerance): #check packet loss percentage
-            print(f"[red][Packet loss limit exceeded] packet loss = {losses/packets_sent}")
+            print(f"[red][Packet loss limit exceeded] packet loss = {(losses/(losses+packets_received))*100}")
 
         bytes_per_report = total_report_size/packets_received
         duplicate_rate = total_duplicates/packets_received

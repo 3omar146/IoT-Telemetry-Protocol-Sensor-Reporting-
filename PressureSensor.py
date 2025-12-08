@@ -1,6 +1,6 @@
 import socket, struct, time, random, hashlib
 
-server_address = ('127.0.0.1', 9999)
+server_address = ('192.168.74.168', 9999)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.settimeout(3)
 
