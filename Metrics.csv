@@ -1,0 +1,2 @@
+bytes_per_report,packets_received,duplicate_rate,sequence_gap_count,cpu_ms_per_report,packet_loss
+32.09,222,0.0,0,0.043,0.0
