@@ -24,19 +24,41 @@ MAX_BATCH = args.batch
 
 def send_handshake():
     global device_id, seq
+
+    max_retries = 5
+    retry_delay = 1  # seconds between retries
+
     packet = struct.pack(HEADER_FORMAT, 1, 0, 0, sensor_type, device_id, seq, int(time.time()*1000))
     checksum = hashlib.md5(packet).digest()
-    sock.sendto(packet + checksum, server_address)
+    handshake_message = packet + checksum
 
-    data, _ = sock.recvfrom(200)
-    version, msg_type, _, sensor_type_recv, device_id_recv, last_seq, ts = struct.unpack(
-        HEADER_FORMAT, data[:struct.calcsize(HEADER_FORMAT)]
-    )
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"[INIT] Sending handshake (attempt {attempt})...", flush=True)
+            sock.sendto(handshake_message, server_address)
 
-    device_id = device_id_recv
-    seq = last_seq
+            data, _ = sock.recvfrom(200)
+            version, msg_type, _, sensor_type_recv, device_id_recv, last_seq, ts = struct.unpack(
+                HEADER_FORMAT, data[:struct.calcsize(HEADER_FORMAT)]
+            )
 
-    print(f"[INIT OK] Device={device_id}, Resume seq={seq}", flush=True)
+            device_id = device_id_recv
+            seq = last_seq
+
+            print(f"[INIT OK] Device={device_id}, Resume seq={seq}", flush=True)
+            return  # success, exit function
+
+        except socket.timeout:
+            print(f"[INIT TIMEOUT] No response from server. Retrying in {retry_delay}s...", flush=True)
+            time.sleep(retry_delay)
+
+        except Exception as e:
+            print(f"[INIT ERROR] {e}", flush=True)
+            time.sleep(retry_delay)
+
+    print("[INIT FAILED] Server did not respond after multiple attempts. Exiting.", flush=True)
+    exit(1)
+
 
 def send_single(value):
     global seq

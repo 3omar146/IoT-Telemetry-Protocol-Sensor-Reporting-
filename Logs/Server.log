@@ -1,0 +1,67 @@
+Server started...
+[CSV] SensorsLogs.csv overwritten.
+[HANDSHAKE] Type=0 assigned ID=1
+[HANDSHAKE] Type=0 assigned ID=2
+[DATA] Single: Type=0 ID=2 seq=1 = 23.95
+[HANDSHAKE] Type=0 assigned ID=3
+[DATA] Single: Type=0 ID=3 seq=1 = 21.52
+[LOSS] Missing 1 packets
+[DATA] Single: Type=0 ID=1 seq=2 = 22.81
+[DATA] Single: Type=0 ID=2 seq=2 = 24.92
+[DATA] Single: Type=0 ID=3 seq=2 = 24.08
+[DATA] Single: Type=0 ID=1 seq=3 = 23.48
+[DATA] Single: Type=0 ID=2 seq=3 = 22.22
+[DATA] Single: Type=0 ID=3 seq=3 = 22.41
+[DATA] Single: Type=0 ID=1 seq=4 = 27.20
+[DATA] Single: Type=0 ID=2 seq=4 = 26.01
+[DATA] Single: Type=0 ID=3 seq=4 = 23.00
+[HEARTBEAT] Device 1 alive
+[HEARTBEAT] Device 2 alive
+[HEARTBEAT] Device 3 alive
+[DATA] Single: Type=0 ID=1 seq=6 = 20.09
+[DATA] Single: Type=0 ID=2 seq=6 = 28.94
+[DATA] Single: Type=0 ID=3 seq=6 = 22.14
+[BATCH seq=7] 29.11,25.59
+[BATCH seq=7] 24.33,29.20
+[BATCH seq=7] 24.74,22.55,28.54
+[DATA] Single: Type=0 ID=2 seq=8 = 26.20
+[DATA] Single: Type=0 ID=3 seq=8 = 26.29
+[DATA] Single: Type=0 ID=1 seq=8 = 20.35
+[DATA] Single: Type=0 ID=2 seq=9 = 20.28
+[DATA] Single: Type=0 ID=3 seq=9 = 29.91
+[DATA] Single: Type=0 ID=1 seq=9 = 28.69
+[HEARTBEAT] Device 2 alive
+[HEARTBEAT] Device 3 alive
+[DATA] Single: Type=0 ID=2 seq=11 = 26.07
+[DATA] Single: Type=0 ID=3 seq=11 = 27.99
+[DATA] Single: Type=0 ID=2 seq=12 = 28.32
+[DATA] Single: Type=0 ID=3 seq=12 = 28.22
+[LOSS] Missing 2 packets
+[DATA] Single: Type=0 ID=1 seq=12 = 24.91
+[DATA] Single: Type=0 ID=2 seq=13 = 29.96
+[DATA] Single: Type=0 ID=3 seq=13 = 21.59
+[DATA] Single: Type=0 ID=1 seq=13 = 20.79
+[DATA] Single: Type=0 ID=3 seq=14 = 21.99
+[DATA] Single: Type=0 ID=1 seq=14 = 23.84
+[BATCH seq=14] 22.00,22.25
+[HEARTBEAT] Device 3 alive
+[HEARTBEAT] Device 1 alive
+[HEARTBEAT] Device 2 alive
+[DATA] Single: Type=0 ID=3 seq=16 = 27.70
+[DATA] Single: Type=0 ID=1 seq=16 = 27.29
+[DATA] Single: Type=0 ID=3 seq=17 = 21.24
+[DATA] Single: Type=0 ID=1 seq=17 = 21.12
+[LOSS] Missing 1 packets
+[DATA] Single: Type=0 ID=2 seq=17 = 23.82
+[DATA] Single: Type=0 ID=3 seq=18 = 24.97
+[DATA] Single: Type=0 ID=1 seq=18 = 24.87
+[DATA] Single: Type=0 ID=2 seq=18 = 25.82
+[DATA] Single: Type=0 ID=3 seq=19 = 25.85
+[DATA] Single: Type=0 ID=1 seq=19 = 26.31
+[DATA] Single: Type=0 ID=2 seq=19 = 23.32
+[HEARTBEAT] Device 3 alive
+[HEARTBEAT] Device 1 alive
+[HEARTBEAT] Device 2 alive
+[BATCH seq=21] 27.36,22.00
+[BATCH seq=21] 26.92,20.72
+[DATA] Single: Type=0 ID=3 seq=22 = 25.54
