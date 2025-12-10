@@ -34,16 +34,18 @@ last_arrival = {}
 reporting_interval_sum = 0
 reporting_interval_count = 0
 
+# -------- Value history for MOVING AVERAGE --------
+value_history = {}   # {dev_id: [recent_values]}
+
 readings_file = "SensorsLogs.csv"
 metrics_file = "Metrics.csv"
-
 
 
 # ---------------------- send_metrics ----------------------
 def send_metrics(bytes_per_report, packets_received, duplicate_rate,
                  sequence_gap_count, cpu_ms_per_report, loss_percent,
-                 avg_reporting_interval,avg_delay):
-    
+                 avg_reporting_interval, avg_delay):
+
     metrics_data = {
         "bytes_per_report": round(bytes_per_report, 2),
         "packets_received": packets_received,
@@ -88,14 +90,12 @@ with open(readings_file, "w", newline='') as f:
 print("[CSV] SensorsLogs.csv overwritten.", flush=True)
 
 
-
 header_size = struct.calcsize(HEADER_FORMAT)
 
 # ========================= MAIN LOOP =========================
 while True:
     try:
         packet, addr = sock.recvfrom(200)
-        
         start = time.perf_counter()
 
         data = packet[:-16]
@@ -107,7 +107,7 @@ while True:
 
         time_received = int(time.time()*1000)
         delay = time_received - timestamp
-        
+
         # -------- Reporting Interval --------
         if dev_id in last_arrival:
             interval = time_received - last_arrival[dev_id]
@@ -119,7 +119,6 @@ while True:
             avg_reporting_interval = reporting_interval_sum / reporting_interval_count
         else:
             avg_reporting_interval = 0
-
 
         # -------- Noise Check --------
         expected_size = count * 4 + header_size
@@ -136,7 +135,6 @@ while True:
         duplicate = False
         label = msg_label(msg_type)
 
-
         # ---------- HANDSHAKE ----------
         if msg_type == 0:
             if (addr, sensor_type) not in device_map:
@@ -148,6 +146,7 @@ while True:
                 sock.sendto(response, addr)
 
                 recentPackets[dev_id] = []
+                value_history[dev_id] = []      # MOVING AVERAGE HISTORY INIT
                 print(f"[HANDSHAKE] Type={sensor_type} assigned ID={dev_id}", flush=True)
 
             else:
@@ -157,20 +156,48 @@ while True:
                 sock.sendto(response, addr)
                 print(f"[INFO] Device already registered (ID={dev_id})", flush=True)
 
-
         # ---------- DUPLICATE + LOSS ----------
         if seq in recentPackets.get(dev_id, []):
             duplicate = True
             total_duplicates += 1
             print(f"[DUPLICATE] seq={seq}", flush=True)
+
         else:
             if dev_id in recentPackets and recentPackets[dev_id]:
+
                 max_seq = max(recentPackets[dev_id])
+
+                # ======== MOVING AVERAGE LOSS SMOOTHING ========
                 if seq > max_seq + 1:
-                    loss_detected = seq - max_seq - 1
-                    losses += loss_detected
+                    missing = seq - max_seq - 1
+                    losses += missing
                     sequence_gap_count += 1
-                    print(f"[LOSS] Missing {loss_detected} packets", flush=True)
+                    print(f"[LOSS] Missing {missing} packets – filling with MOVING AVERAGE", flush=True)
+
+                    # Compute moving average
+                    if dev_id in value_history and len(value_history[dev_id]) > 0:
+                        avg_value = sum(value_history[dev_id]) / len(value_history[dev_id])
+                    else:
+                        avg_value = 0  # fallback
+
+                    # Write estimated rows for missing seq numbers
+                    for i in range(missing):
+                        est_seq = max_seq + 1 + i
+
+                        with open(readings_file, "a", newline='') as f:
+                            writer = csv.writer(f)
+                            writer.writerow([
+                                sensor_type, dev_id, est_seq,
+                                round(timestamp,3),
+                                round(time.time(),3),
+                                "ESTIMATED",
+                                avg_value if sensor_type == 0 else "",
+                                avg_value if sensor_type == 1 else "",
+                                avg_value if sensor_type == 2 else "",
+                                1,     # loss flag
+                                0,     # duplicate flag
+                                1
+                            ])
 
             recentPackets.setdefault(dev_id, []).append(seq)
             if len(recentPackets[dev_id]) > recentPacketLimit:
@@ -189,6 +216,15 @@ while True:
                 index += 4
                 values.append(v)
 
+            # Save real values into history
+            if dev_id not in value_history:
+                value_history[dev_id] = []
+
+            for v in values:
+                value_history[dev_id].append(v)
+                if len(value_history[dev_id]) > 5:
+                    value_history[dev_id].pop(0)
+
             if count == 1:
                 v = values[0]
                 if sensor_type == 0: temp = v
@@ -200,12 +236,10 @@ while True:
                 batch_values_str = ",".join([f"{v:.2f}" for v in values])
                 print(f"[BATCH seq={seq}] {batch_values_str}", flush=True)
 
-
         # ---------- HEARTBEAT ----------
         if msg_type == 2:
             last_heartbeat[dev_id] = time.time()
             print(f"[HEARTBEAT] Device {dev_id} alive", flush=True)
-
 
         # ---------- CHECKSUM & CSV ----------
         if hashlib.md5(data).digest() == checksum:
@@ -235,7 +269,6 @@ while True:
         else:
             print(f"[CHECKSUM ERROR] seq={seq}", flush=True)
 
-
         # ---------- METRICS ----------
         avg_delay = total_delay / packets_received if packets_received else 0
         loss_percent = (losses / (losses + packets_received)) * 100 if packets_received + losses > 0 else 0
@@ -248,8 +281,7 @@ while True:
 
         send_metrics(bytes_per_report, packets_received, duplicate_rate,
                      sequence_gap_count, cpu_ms_per_report,
-                     loss_percent, avg_reporting_interval,avg_delay)
-
+                     loss_percent, avg_reporting_interval, avg_delay)
 
         # ---------- HEARTBEAT TIMEOUT ----------
         for id, last in list(last_heartbeat.items()):
