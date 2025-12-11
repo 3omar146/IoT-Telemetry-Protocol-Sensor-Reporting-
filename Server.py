@@ -156,7 +156,7 @@ while True:
             else:
                 dev_id = device_map[(addr, sensor_type)]
                 seq = max(recentPackets.get(dev_id, [0])) + 1
-                response = struct.pack(HEADER_FORMAT, 1, 10, 0, sensor_type, dev_id, seq, int(time.time()*1000))
+                response = struct.pack(HEADER_FORMAT, 1, 0, 0, sensor_type, dev_id, seq, int(time.time()*1000))
                 sock.sendto(response, addr)
                 print(f"[INFO] Device already registered (ID={dev_id})", flush=True)
 
