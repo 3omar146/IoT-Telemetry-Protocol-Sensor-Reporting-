@@ -26,7 +26,7 @@ cpu_ms_per_report = 0
 total_cpu_time = 0
 
 #delay
-avg_delay = 0
+avg_delay_in_ms = 0
 total_delay = 0
 
 # -------- Reporting Interval --------
@@ -44,7 +44,7 @@ metrics_file = "Metrics.csv"
 # ---------------------- send_metrics ----------------------
 def send_metrics(bytes_per_report, packets_received, duplicate_rate,
                  sequence_gap_count, cpu_ms_per_report, loss_percent,
-                 avg_reporting_interval, avg_delay):
+                 avg_reporting_interval_in_ms, avg_delay_in_ms):
 
     metrics_data = {
         "bytes_per_report": round(bytes_per_report, 2),
@@ -52,9 +52,9 @@ def send_metrics(bytes_per_report, packets_received, duplicate_rate,
         "duplicate_rate": round(duplicate_rate, 3),
         "sequence_gap_count": sequence_gap_count,
         "cpu_ms_per_report": round(cpu_ms_per_report, 3),
-        "packet_loss": round(loss_percent, 3),
-        "avg_reporting_interval": round(avg_reporting_interval, 3),
-        "avg_delay": round(avg_delay, 3)
+        "packet_loss_percent": round(loss_percent, 3),
+        "avg_reporting_interval_in_ms": round(avg_reporting_interval_in_ms, 3),
+        "avg_delay_in_ms": round(avg_delay_in_ms, 3)
     }
 
     with open(metrics_file, "w", newline='') as f:
@@ -62,7 +62,7 @@ def send_metrics(bytes_per_report, packets_received, duplicate_rate,
         writer.writerow([
             "bytes_per_report", "packets_received", "duplicate_rate",
             "sequence_gap_count", "cpu_ms_per_report",
-            "packet_loss", "avg_reporting_interval", "avg_delay"
+            "packet_loss_percent", "avg_reporting_interval_in_ms", "avg_delay_in_ms"
         ])
         writer.writerow([
             metrics_data["bytes_per_report"],
@@ -70,9 +70,9 @@ def send_metrics(bytes_per_report, packets_received, duplicate_rate,
             metrics_data["duplicate_rate"],
             metrics_data["sequence_gap_count"],
             metrics_data["cpu_ms_per_report"],
-            metrics_data["packet_loss"],
-            metrics_data["avg_reporting_interval"],
-            metrics_data["avg_delay"]
+            metrics_data["packet_loss_percent"],
+            metrics_data["avg_reporting_interval_in_ms"],
+            metrics_data["avg_delay_in_ms"]
         ])
 
 
@@ -97,12 +97,10 @@ while True:
     try:
         packet, addr = sock.recvfrom(200)
         start = time.perf_counter()
-        if(len(packet))>header_size+16:
-            data = packet[:-16]
-            checksum = packet[-16:]
-        else:
-            print("[NOISE] Invalid payload size", flush=True)
-            continue
+
+        data = packet[:-16]
+        checksum = packet[-16:]
+        
 
         version, msg_type, count, sensor_type, dev_id, seq, timestamp = struct.unpack(
             HEADER_FORMAT, data[:header_size]
@@ -134,9 +132,9 @@ while True:
         last_arrival[dev_id] = time_received
 
         if reporting_interval_count > 0:
-            avg_reporting_interval = reporting_interval_sum / reporting_interval_count
+            avg_reporting_interval_in_ms = reporting_interval_sum / reporting_interval_count
         else:
-            avg_reporting_interval = 0
+            avg_reporting_interval_in_ms = 0
 
 
         # ---------- HANDSHAKE ----------
@@ -176,7 +174,7 @@ while True:
                     missing = seq - max_seq - 1
                     losses += missing
                     sequence_gap_count += 1
-                    print(f"[LOSS] Missing {missing} packets – filling with MOVING AVERAGE", flush=True)
+                    print(f"[LOSS] Missing {missing} packets, filling with MOVING AVERAGE", flush=True)
 
                     # Compute moving average
                     if dev_id in value_history and len(value_history[dev_id]) > 0:
@@ -274,7 +272,7 @@ while True:
             print(f"[CHECKSUM ERROR] seq={seq}", flush=True)
 
         # ---------- METRICS ----------
-        avg_delay = total_delay / packets_received if packets_received else 0
+        avg_delay_in_ms = total_delay / packets_received if packets_received else 0
         loss_percent = (losses / (losses + packets_received)) * 100 if packets_received + losses > 0 else 0
         bytes_per_report = total_report_size / packets_received if packets_received else 0
         duplicate_rate = total_duplicates / packets_received if packets_received else 0
@@ -285,7 +283,7 @@ while True:
 
         send_metrics(bytes_per_report, packets_received, duplicate_rate,
                      sequence_gap_count, cpu_ms_per_report,
-                     loss_percent, avg_reporting_interval, avg_delay)
+                     loss_percent, avg_reporting_interval_in_ms, avg_delay_in_ms)
 
         # ---------- HEARTBEAT TIMEOUT ----------
         for id, last in list(last_heartbeat.items()):

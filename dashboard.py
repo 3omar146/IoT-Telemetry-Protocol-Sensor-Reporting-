@@ -143,7 +143,7 @@ class Dashboard(ctk.CTk):
         self.test_time_entry = ctk.CTkEntry(control, textvariable=self.test_time_var, width=80)
         self.test_time_entry.pack(side="left", padx=5)
 
-        ctk.CTkLabel(control, text="Batch Size:").pack(side="left", padx=5)
+        ctk.CTkLabel(control, text="Max Batch Size:").pack(side="left", padx=5)
         self.batch_var = ctk.StringVar(value="3")
         self.batch_entry = ctk.CTkEntry(control, textvariable=self.batch_var, width=80)
         self.batch_entry.pack(side="left", padx=5)
@@ -194,7 +194,7 @@ class Dashboard(ctk.CTk):
         metric_keys = [
             "bytes_per_report", "packets_received", "duplicate_rate",
             "sequence_gap_count", "cpu_ms_per_report",
-            "packet_loss", "avg_reporting_interval", "avg_delay"
+            "packet_loss_percent", "avg_reporting_interval_in_ms", "avg_delay_in_ms"
         ]
 
         self.metric_labels = {}
@@ -321,6 +321,9 @@ class Dashboard(ctk.CTk):
         self.start_countdown(int(self.test_time_var.get()))
 
     def capture_terminal(self, tag, p, logfile):
+
+        show_output = (tag == "SERVER")  # Only display server logs in UI terminal
+
         try:
             for line in iter(p.stdout.readline, ''):
                 if line == '':
@@ -333,13 +336,15 @@ class Dashboard(ctk.CTk):
                 except:
                     pass
 
-                try:
-                    self.terminal.configure(state="normal")
-                    self.terminal.insert("end", clean)
-                    self.terminal.see("end")
-                    self.terminal.configure(state="disabled")
-                except:
-                    pass
+                if show_output:
+                    try:
+                        self.terminal.configure(state="normal")
+                        self.terminal.insert("end", clean)
+                        self.terminal.see("end")
+                        self.terminal.configure(state="disabled")
+                    except:
+                        pass
+
         except:
             pass
         finally:
@@ -347,6 +352,33 @@ class Dashboard(ctk.CTk):
                 logfile.flush()
             except:
                 pass
+
+            try:
+                for line in iter(p.stdout.readline, ''):
+                    if line == '':
+                        break
+                    clean = ansi_escape.sub("", line)
+
+                    try:
+                        logfile.write(clean)
+                        logfile.flush()
+                    except:
+                        pass
+
+                    try:
+                        self.terminal.configure(state="normal")
+                        self.terminal.insert("end", clean)
+                        self.terminal.see("end")
+                        self.terminal.configure(state="disabled")
+                    except:
+                        pass
+            except:
+                pass
+            finally:
+                try:
+                    logfile.flush()
+                except:
+                    pass
 
     # ------------------------------- SENSORS -------------------------------
 
