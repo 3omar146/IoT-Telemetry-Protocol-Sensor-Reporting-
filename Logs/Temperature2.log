@@ -1,0 +1,54 @@
+[INIT] Sending handshake (attempt 1)...
+[INIT OK] Device=2, Resume seq=0
+[SINGLE] seq=1, value=23.95
+[SINGLE] seq=2, value=24.92
+[SINGLE] seq=3, value=22.22
+[SINGLE] seq=4, value=26.01
+[HEARTBEAT] seq=5
+[SINGLE] seq=6, value=28.94
+[BATCH COLLECTION] 29.11°C
+[BATCH COLLECTION] 25.59°C
+[BATCH] seq=7, count=2, values=[29.11, 25.59]
+[SINGLE] seq=8, value=26.20
+[SINGLE] seq=9, value=20.28
+[HEARTBEAT] seq=10
+[SINGLE] seq=11, value=26.07
+[SINGLE] seq=12, value=28.32
+[SINGLE] seq=13, value=29.96
+[BATCH COLLECTION] 22.00°C
+[BATCH COLLECTION] 22.25°C
+[BATCH] seq=14, count=2, values=[22.0, 22.25]
+[HEARTBEAT] seq=15
+[SINGLE] seq=16, value=28.26
+[SINGLE] seq=17, value=23.82
+[SINGLE] seq=18, value=25.82
+[SINGLE] seq=19, value=23.32
+[HEARTBEAT] seq=20
+[BATCH COLLECTION] 26.92°C
+[BATCH COLLECTION] 20.72°C
+[BATCH] seq=21, count=2, values=[26.92, 20.72]
+[SINGLE] seq=22, value=29.64
+[SINGLE] seq=23, value=20.70
+[SINGLE] seq=24, value=24.49
+[HEARTBEAT] seq=25
+[SINGLE] seq=26, value=23.65
+[SINGLE] seq=27, value=24.63
+[BATCH COLLECTION] 24.71°C
+[BATCH COLLECTION] 22.89°C
+[BATCH COLLECTION] 26.62°C
+[BATCH] seq=28, count=3, values=[24.71, 22.89, 26.62]
+[SINGLE] seq=29, value=25.95
+[HEARTBEAT] seq=30
+[SINGLE] seq=31, value=23.44
+[SINGLE] seq=32, value=21.33
+[SINGLE] seq=33, value=26.21
+[SINGLE] seq=34, value=26.36
+[HEARTBEAT] seq=35
+[SINGLE] seq=36, value=22.34
+[SINGLE] seq=37, value=28.14
+[SINGLE] seq=38, value=24.19
+[SINGLE] seq=39, value=24.03
+[HEARTBEAT] seq=40
+[SINGLE] seq=41, value=28.42
+[BATCH COLLECTION] 29.87°C
+[BATCH COLLECTION] 28.52°C
