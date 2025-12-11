@@ -97,9 +97,12 @@ while True:
     try:
         packet, addr = sock.recvfrom(200)
         start = time.perf_counter()
-
-        data = packet[:-16]
-        checksum = packet[-16:]
+        if(len(packet))>header_size+16:
+            data = packet[:-16]
+            checksum = packet[-16:]
+        else:
+            print("[NOISE] Invalid payload size", flush=True)
+            continue
 
         version, msg_type, count, sensor_type, dev_id, seq, timestamp = struct.unpack(
             HEADER_FORMAT, data[:header_size]
@@ -107,6 +110,21 @@ while True:
 
         time_received = int(time.time()*1000)
         delay = time_received - timestamp
+
+
+        # -------- Noise Check --------
+        expected_size = count * 4 + header_size
+        if expected_size != len(data) or len(packet) > 200:
+            print("[NOISE] Invalid payload size", flush=True)
+            continue
+        else:
+            total_report_size += len(packet)
+
+        total_delay += delay
+        index = header_size
+        temp = hum = pres = ""
+        duplicate = False
+        label = msg_label(msg_type)
 
         # -------- Reporting Interval --------
         if dev_id in last_arrival:
@@ -120,20 +138,6 @@ while True:
         else:
             avg_reporting_interval = 0
 
-        # -------- Noise Check --------
-        expected_size = count * 4 + header_size
-        if expected_size != len(data) or len(packet) > 200:
-            print("[NOISE] Invalid payload size", flush=True)
-            continue
-        else:
-            total_report_size += len(packet)
-
-        total_delay += delay
-        index = header_size
-        temp = hum = pres = ""
-        loss_detected = 0
-        duplicate = False
-        label = msg_label(msg_type)
 
         # ---------- HANDSHAKE ----------
         if msg_type == 0:
@@ -142,17 +146,17 @@ while True:
                 dev_id = counter
                 device_map[(addr, sensor_type)] = dev_id
 
-                response = struct.pack(HEADER_FORMAT, 1, 10, 0, sensor_type, dev_id, 0, int(time.time()))
+                response = struct.pack(HEADER_FORMAT, 1, 0, 0, sensor_type, dev_id, 0, int(time.time()*1000))
                 sock.sendto(response, addr)
 
-                recentPackets[dev_id] = []
+                recentPackets[dev_id] = []      #recent seq numbers for duplicates and loss detection
                 value_history[dev_id] = []      # MOVING AVERAGE HISTORY INIT
                 print(f"[HANDSHAKE] Type={sensor_type} assigned ID={dev_id}", flush=True)
 
             else:
                 dev_id = device_map[(addr, sensor_type)]
                 seq = max(recentPackets.get(dev_id, [0])) + 1
-                response = struct.pack(HEADER_FORMAT, 1, 10, 0, sensor_type, dev_id, seq, int(time.time()))
+                response = struct.pack(HEADER_FORMAT, 1, 10, 0, sensor_type, dev_id, seq, int(time.time()*1000))
                 sock.sendto(response, addr)
                 print(f"[INFO] Device already registered (ID={dev_id})", flush=True)
 
@@ -254,7 +258,7 @@ while True:
 
                     writer.writerow([
                         sensor_type, dev_id, seq, round(timestamp,3), round(time.time(),3),
-                        label, temp, hum, pres, loss_detected, duplicate, count
+                        label, temp, hum, pres,0, duplicate, count
                     ])
                 else:
                     writer.writerow([
@@ -263,7 +267,7 @@ while True:
                         f"{temp:.2f}" if temp != "" else "",
                         f"{hum:.2f}" if hum != "" else "",
                         f"{pres:.2f}" if pres != "" else "",
-                        loss_detected, duplicate, count
+                        0, duplicate, count
                     ])
 
         else:
