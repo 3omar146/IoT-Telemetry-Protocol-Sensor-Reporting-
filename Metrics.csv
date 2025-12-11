@@ -1,2 +1,2 @@
 bytes_per_report,packets_received,duplicate_rate,sequence_gap_count,cpu_ms_per_report,packet_loss,avg_reporting_interval,avg_delay
-35.54,114,0.0,6,3.771,5.785,1250.682,0.395
+35.48,123,0.0,8,3.737,6.818,1265.378,0.382
