@@ -222,7 +222,7 @@ These files are used for:
 - Eslam Fawzy  
 - Hassan Ghallab  
 - Mohamed Wael  
-- **Omar Tamer**  
+## - Omar Tamer 
 
 **Course:** Computer Networking
 
