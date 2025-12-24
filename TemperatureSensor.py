@@ -1,8 +1,12 @@
 import socket, struct, time, random, hashlib
 import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--batch", type=int, default=3)
+parser.add_argument("--server-ip", default="127.0.0.1")
+args = parser.parse_args()
 
-server_address = ('192.168.74.168', 9999)
+server_address = (args.server_ip, 9999)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.settimeout(3)
 
@@ -14,9 +18,7 @@ seq = 0
 HEADER_FORMAT = '!BBBBHHQ'  # version,msg_type,count,sensor,device,seq,timestamp
 VALUE_FORMAT  = '!f'
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--batch", type=int, default=3)
-args = parser.parse_args()
+
 
 MAX_BATCH = args.batch
 
