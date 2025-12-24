@@ -160,7 +160,7 @@ class Dashboard(ctk.CTk):
 
         ctk.CTkLabel(
             control,
-            text="(default = no WSL environment, or enter your WSL IP to run tests)",
+            text="(default = no WSL environment\n or enter your WSL IP to run tests)",
             text_color="gray"
         ).pack(side="left", padx=5)
 
