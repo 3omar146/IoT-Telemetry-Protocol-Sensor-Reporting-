@@ -148,6 +148,23 @@ class Dashboard(ctk.CTk):
         self.batch_entry = ctk.CTkEntry(control, textvariable=self.batch_var, width=80)
         self.batch_entry.pack(side="left", padx=5)
 
+        ctk.CTkLabel(control, text="Server IP:").pack(side="left", padx=5)
+
+        self.server_ip_var = ctk.StringVar(value="127.0.0.1")
+        self.server_ip_entry = ctk.CTkEntry(
+            control,
+            textvariable=self.server_ip_var,
+            width=150
+        )
+        self.server_ip_entry.pack(side="left", padx=5)
+
+        ctk.CTkLabel(
+            control,
+            text="(default = no WSL environment, or enter your WSL IP to run tests)",
+            text_color="gray"
+        ).pack(side="left", padx=5)
+
+
         self.start_server_btn = ctk.CTkButton(
             control, text="Start Server (WSL)", width=180, command=self.start_server
         )
@@ -391,10 +408,25 @@ class Dashboard(ctk.CTk):
 
             tag = f"{name}_{int(time.time())}"
 
+            server_ip = self.server_ip_var.get().strip()
+
+            if not server_ip:
+                messagebox.showerror("Error", "Server IP cannot be empty.")
+                return
+
             p, logfile = spawn_process(
-                ["wsl", "python3", script, "--batch", batch],
+                [
+                    "wsl",
+                    "python3",
+                    script,
+                    "--batch",
+                    batch,
+                    "--server-ip",
+                    server_ip
+                ],
                 tag
             )
+
 
             threading.Thread(target=self.capture_terminal, args=(tag, p, logfile), daemon=True).start()
 
