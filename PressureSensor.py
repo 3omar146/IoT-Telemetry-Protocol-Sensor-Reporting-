@@ -6,7 +6,7 @@ parser.add_argument("--batch", type=int, default=3)
 parser.add_argument("--server-ip", default="127.0.0.1")
 args = parser.parse_args()
 
-server_address = (args.server_ip, 9999)
+server_address = (args.server_ip, 9999) #127.0.0.1 for non WSL runs, change if needed to the WSL IP -> set through the dashboards
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.settimeout(3)
 
