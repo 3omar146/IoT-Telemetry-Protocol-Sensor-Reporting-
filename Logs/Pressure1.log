@@ -1,0 +1,15 @@
+[INIT] Sending handshake (attempt 1)...
+[INIT OK] Device=3, Resume seq=0
+[SINGLE] seq=1, pressure=1041.91 hPa
+[SINGLE] seq=2, pressure=1040.88 hPa
+[SINGLE] seq=3, pressure=1001.23 hPa
+[SINGLE] seq=4, pressure=1032.34 hPa
+[HEARTBEAT] seq=5
+[SINGLE] seq=6, pressure=964.75 hPa
+[BATCH COLLECTION] 1029.99 hPa
+[BATCH COLLECTION] 1045.04 hPa
+[BATCH] seq=7, count=2, values=[1029.99, 1045.04] hPa
+[SINGLE] seq=8, pressure=993.86 hPa
+[SINGLE] seq=9, pressure=1017.14 hPa
+[HEARTBEAT] seq=10
+[SINGLE] seq=11, pressure=1024.16 hPa

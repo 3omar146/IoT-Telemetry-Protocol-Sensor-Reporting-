@@ -1,0 +1,16 @@
+[INIT] Sending handshake (attempt 1)...
+[INIT OK] Device=2, Resume seq=0
+[SINGLE] seq=1, humidity=42.24%
+[SINGLE] seq=2, humidity=46.67%
+[SINGLE] seq=3, humidity=58.07%
+[SINGLE] seq=4, humidity=57.59%
+[HEARTBEAT] seq=5
+[SINGLE] seq=6, humidity=52.85%
+[BATCH COLLECTION] 40.03%
+[BATCH COLLECTION] 54.86%
+[BATCH] seq=7, count=2, values=[40.03, 54.86]
+[SINGLE] seq=8, humidity=56.28%
+[SINGLE] seq=9, humidity=58.40%
+[HEARTBEAT] seq=10
+[SINGLE] seq=11, humidity=52.31%
+[SINGLE] seq=12, humidity=40.95%

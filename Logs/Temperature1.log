@@ -1,0 +1,17 @@
+[INIT] Sending handshake (attempt 1)...
+[INIT OK] Device=1, Resume seq=0
+[SINGLE] seq=1, value=22.92
+[SINGLE] seq=2, value=26.69
+[SINGLE] seq=3, value=23.79
+[SINGLE] seq=4, value=29.26
+[HEARTBEAT] seq=5
+[SINGLE] seq=6, value=22.89
+[BATCH COLLECTION] 26.75°C
+[BATCH COLLECTION] 26.01°C
+[BATCH] seq=7, count=2, values=[26.75, 26.01]
+[SINGLE] seq=8, value=28.41
+[SINGLE] seq=9, value=29.72
+[HEARTBEAT] seq=10
+[SINGLE] seq=11, value=21.56
+[SINGLE] seq=12, value=28.99
+[SINGLE] seq=13, value=20.40

@@ -1,0 +1,40 @@
+Server started...
+[CSV] SensorsLogs.csv overwritten.
+[HANDSHAKE] Type=0 assigned ID=1
+[DATA] Single: Type=0 ID=1 seq=1 = 22.92
+[HANDSHAKE] Type=1 assigned ID=2
+[DATA] Single: Type=1 ID=2 seq=1 = 42.24
+[DATA] Single: Type=0 ID=1 seq=2 = 26.69
+[HANDSHAKE] Type=2 assigned ID=3
+[DATA] Single: Type=2 ID=3 seq=1 = 1041.91
+[DATA] Single: Type=1 ID=2 seq=2 = 46.67
+[DATA] Single: Type=0 ID=1 seq=3 = 23.79
+[DATA] Single: Type=2 ID=3 seq=2 = 1040.88
+[DATA] Single: Type=1 ID=2 seq=3 = 58.07
+[DATA] Single: Type=0 ID=1 seq=4 = 29.26
+[DATA] Single: Type=2 ID=3 seq=3 = 1001.23
+[DATA] Single: Type=1 ID=2 seq=4 = 57.59
+[HEARTBEAT] Device 1 alive
+[DATA] Single: Type=2 ID=3 seq=4 = 1032.34
+[HEARTBEAT] Device 2 alive
+[DATA] Single: Type=0 ID=1 seq=6 = 22.89
+[HEARTBEAT] Device 3 alive
+[DATA] Single: Type=1 ID=2 seq=6 = 52.85
+[DATA] Single: Type=2 ID=3 seq=6 = 964.75
+[BATCH seq=7] 26.75,26.01
+[BATCH seq=7] 40.03,54.86
+[DATA] Single: Type=0 ID=1 seq=8 = 28.41
+[BATCH seq=7] 1029.99,1045.04
+[DATA] Single: Type=1 ID=2 seq=8 = 56.28
+[DATA] Single: Type=0 ID=1 seq=9 = 29.72
+[DATA] Single: Type=2 ID=3 seq=8 = 993.86
+[DATA] Single: Type=1 ID=2 seq=9 = 58.40
+[HEARTBEAT] Device 1 alive
+[DATA] Single: Type=2 ID=3 seq=9 = 1017.14
+[HEARTBEAT] Device 2 alive
+[DATA] Single: Type=0 ID=1 seq=11 = 21.56
+[HEARTBEAT] Device 3 alive
+[DATA] Single: Type=1 ID=2 seq=11 = 52.31
+[DATA] Single: Type=0 ID=1 seq=12 = 28.99
+[DATA] Single: Type=2 ID=3 seq=11 = 1024.16
+[DATA] Single: Type=1 ID=2 seq=12 = 40.95
